@@ -11,6 +11,8 @@ Kernel Build System
     kconfig-macro-language
 
     kbuild
+    meson
+    lpm-validation
     kconfig
     makefiles
     modules

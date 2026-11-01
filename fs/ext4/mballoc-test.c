@@ -984,7 +984,47 @@ static void mbt_show_layout(const struct mbt_ext4_block_layout *layout,
 }
 KUNIT_ARRAY_PARAM(mbt_layouts, mbt_test_layouts, mbt_show_layout);
 
+static void check_mb_bitmap_range(struct kunit *test, int offset, int start,
+				  int len, bool set)
+{
+	u8 actual[128] __aligned(sizeof(unsigned long));
+	u8 expected[128];
+	int bit;
+
+	memset(actual, 0xa5, sizeof(actual));
+	memcpy(expected, actual, sizeof(actual));
+	for (bit = start; bit < start + len; bit++) {
+		u8 *byte = expected + 8 + offset + (bit >> 3);
+
+		if (set)
+			*byte |= 1U << (bit & 7);
+		else
+			*byte &= ~(1U << (bit & 7));
+	}
+	if (set)
+		mb_set_bits(actual + 8 + offset, start, len);
+	else
+		mb_clear_bits_test(actual + 8 + offset, start, len);
+	KUNIT_EXPECT_MEMEQ(test, actual, expected, sizeof(actual));
+}
+
+/* Byte offsets model the unaligned higher-order buddy bitmaps. */
+static void test_mb_bitmap_ranges(struct kunit *test)
+{
+	int offset, start, len;
+
+	for (offset = 0; offset < sizeof(unsigned long); offset++) {
+		for (start = 0; start < 64; start++) {
+			for (len = 0; len <= 512; len++) {
+				check_mb_bitmap_range(test, offset, start, len, false);
+				check_mb_bitmap_range(test, offset, start, len, true);
+			}
+		}
+	}
+}
+
 static struct kunit_case mbt_test_cases[] = {
+	KUNIT_CASE_PARAM(test_mb_bitmap_ranges, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_new_blocks_simple, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_free_blocks_simple, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_mb_generate_buddy, mbt_layouts_gen_params),

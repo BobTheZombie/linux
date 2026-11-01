@@ -1862,19 +1862,27 @@ static int mb_find_order_for_block(struct ext4_buddy *e4b, int block)
 
 static void mb_clear_bits(void *bm, int cur, int len)
 {
-	__u32 *addr;
+	int end = cur + len;
 
-	len = cur + len;
-	while (cur < len) {
-		if ((cur & 31) == 0 && (len - cur) >= 32) {
-			/* fast path: clear whole word at once */
-			addr = bm + (cur >> 3);
-			*addr = 0;
+	/* Amortize memset setup over a long, byte-aligned interior. */
+	if (len >= 256) {
+		int bytes;
+
+		while (cur < end && (cur & 7))
+			mb_clear_bit(cur++, bm);
+		bytes = (end - cur) >> 3;
+		memset(bm + (cur >> 3), 0, bytes);
+		cur += bytes << 3;
+	}
+
+	/* Preserve the inexpensive word path for short aligned ranges. */
+	while (cur < end) {
+		if ((cur & 31) == 0 && (end - cur) >= 32) {
+			memset(bm + (cur >> 3), 0, sizeof(__u32));
 			cur += 32;
 			continue;
 		}
-		mb_clear_bit(cur, bm);
-		cur++;
+		mb_clear_bit(cur++, bm);
 	}
 }
 
@@ -1907,19 +1915,27 @@ static int mb_test_and_clear_bits(void *bm, int cur, int len)
 
 void mb_set_bits(void *bm, int cur, int len)
 {
-	__u32 *addr;
+	int end = cur + len;
 
-	len = cur + len;
-	while (cur < len) {
-		if ((cur & 31) == 0 && (len - cur) >= 32) {
-			/* fast path: set whole word at once */
-			addr = bm + (cur >> 3);
-			*addr = 0xffffffff;
+	/* Amortize memset setup over a long, byte-aligned interior. */
+	if (len >= 256) {
+		int bytes;
+
+		while (cur < end && (cur & 7))
+			mb_set_bit(cur++, bm);
+		bytes = (end - cur) >> 3;
+		memset(bm + (cur >> 3), 0xff, bytes);
+		cur += bytes << 3;
+	}
+
+	/* Preserve the inexpensive word path for short aligned ranges. */
+	while (cur < end) {
+		if ((cur & 31) == 0 && (end - cur) >= 32) {
+			memset(bm + (cur >> 3), 0xff, sizeof(__u32));
 			cur += 32;
 			continue;
 		}
-		mb_set_bit(cur, bm);
-		cur++;
+		mb_set_bit(cur++, bm);
 	}
 }
 

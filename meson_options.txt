@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+option('kernel_arch', type: 'string', value: 'x86', description: 'Kbuild ARCH')
+option('cross_compile', type: 'string', value: '', description: 'Kbuild CROSS_COMPILE prefix')
+option('llvm', type: 'string', value: '', description: 'Kbuild LLVM value (1, suffix, or path)')
+option('jobs', type: 'integer', min: 0, value: 0, description: 'Kbuild jobs; 0 uses available CPUs')
+option('config', type: 'string', value: '', description: 'Initial .config; never overwrites an existing configuration')
+option('defconfig', type: 'string', value: 'defconfig', description: 'Initial Kbuild defconfig target')
+option('ryzen', type: 'combo', choices: ['none', 'zen', 'zen2', 'zen3', 'zen4', 'zen5'], value: 'none', description: 'Apply Ryzen configuration fragment on first configuration')
+option('kconfig_ui', type: 'feature', value: 'auto', description: 'Build native Meson menuconfig host tool')
