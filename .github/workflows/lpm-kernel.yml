@@ -1,0 +1,68 @@
+# SPDX-License-Identifier: GPL-2.0-only
+name: LPM Meson kernel validation
+on:
+  pull_request:
+    paths:
+      - 'meson*'
+      - 'scripts/meson/**'
+      - 'scripts/kconfig/**'
+      - 'arch/x86/Kconfig.cpu'
+      - 'arch/x86/Makefile'
+      - 'kernel/configs/lpm-ryzen.config'
+      - 'fs/ext4/**'
+      - '.github/workflows/lpm-kernel.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        llvm: ['', '1']
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y meson ninja-build flex bison bc libelf-dev libssl-dev libncurses-dev python3-pytest clang llvm lld
+      - name: Configure Zen 2 build
+        run: meson setup build -Dryzen=zen2 -Dllvm='${{ matrix.llvm }}' -Djobs=2 -Dkconfig_ui=enabled
+      - name: Build kernel and modules
+        run: ninja -C build
+      - name: Validate incremental build and bridge
+        run: |
+          ninja -C build
+          meson test -C build --no-rebuild --print-errorlogs
+          cd build
+          python3 -m pytest ../scripts/kconfig/tests -q
+      - name: Validate bitmap helpers with sanitizers
+        run: |
+          git fetch --depth=1 origin cbbddb6b08cc9900a87cccaa9b22bbe06aa4f50a
+          python3 scripts/meson/check_bitmap.py
+      - name: Stage modules and headers
+        run: |
+          INSTALL_MOD_PATH="$PWD/stage" ninja -C build modules_install
+          INSTALL_HDR_PATH="$PWD/stage/usr" ninja -C build headers_install
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kernel-llvm-${{ matrix.llvm || 'gcc' }}
+          path: |
+            build/kernel/arch/x86/boot/bzImage
+            build/kernel/.config
+            build/kernel/Module.symvers
+  ext4-kunit:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flex bison bc libelf-dev libssl-dev
+      - name: Run ext4 KUnit under UML
+        run: python3 tools/testing/kunit/kunit.py run --kunitconfig=fs/ext4 --build_dir=build-kunit --jobs=2 --timeout=300

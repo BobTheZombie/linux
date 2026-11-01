@@ -38,25 +38,29 @@ endif
 # We need this, in case the user has it in its environment
 unexport CONFIG_
 
-config-prog	:= conf
-menuconfig-prog	:= mconf
-nconfig-prog	:= nconf
-gconfig-prog	:= gconf
-xconfig-prog	:= qconf
+# Optional externally built host tools (for the Meson/Ninja frontend).
+KCONFIG_CONF ?= $(obj)/conf
+KCONFIG_MCONF ?= $(obj)/mconf
+
+config-prog	:= $(KCONFIG_CONF)
+menuconfig-prog	:= $(KCONFIG_MCONF)
+nconfig-prog	:= $(obj)/nconf
+gconfig-prog	:= $(obj)/gconf
+xconfig-prog	:= $(obj)/qconf
 
 define config_rule
 PHONY += $(1)
-$(1): $(obj)/$($(1)-prog)
+$(1): $($(1)-prog)
 	$(Q)$$< $(silent) $(Kconfig)
 
 PHONY += build_$(1)
-build_$(1): $(obj)/$($(1)-prog)
+build_$(1): $($(1)-prog)
 endef
 
 $(foreach c, config menuconfig nconfig gconfig xconfig, $(eval $(call config_rule,$(c))))
 
 PHONY += localmodconfig localyesconfig
-localyesconfig localmodconfig: $(obj)/conf
+localyesconfig localmodconfig: $(KCONFIG_CONF)
 	$(Q)$(PERL) $(src)/streamline_config.pl --$@ $(srctree) $(Kconfig) > .tmp.config
 	$(Q)if [ -f .config ]; then 				\
 		cmp -s .tmp.config .config ||			\
@@ -81,15 +85,15 @@ simple-targets := oldconfig allnoconfig allyesconfig allmodconfig \
 
 PHONY += $(simple-targets)
 
-$(simple-targets): $(obj)/conf
+$(simple-targets): $(KCONFIG_CONF)
 	$(Q)$< $(silent) --$@ $(Kconfig)
 
 PHONY += savedefconfig defconfig
 
-savedefconfig: $(obj)/conf
+savedefconfig: $(KCONFIG_CONF)
 	$(Q)$< $(silent) --$@=defconfig $(Kconfig)
 
-defconfig: $(obj)/conf
+defconfig: $(KCONFIG_CONF)
 ifneq ($(wildcard $(srctree)/arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG)),)
 	@$(kecho) "*** Default configuration is based on '$(KBUILD_DEFCONFIG)'"
 	$(Q)$< $(silent) --defconfig=arch/$(SRCARCH)/configs/$(KBUILD_DEFCONFIG) $(Kconfig)
@@ -98,7 +102,7 @@ else
 	$(Q)$(MAKE) -f $(srctree)/Makefile $(KBUILD_DEFCONFIG)
 endif
 
-%_defconfig: $(obj)/conf
+%_defconfig: $(KCONFIG_CONF)
 	$(Q)$< $(silent) --defconfig=arch/$(SRCARCH)/configs/$@ $(Kconfig)
 
 configfiles = $(wildcard $(srctree)/kernel/configs/$(1) $(srctree)/arch/$(SRCARCH)/configs/$(1))
@@ -107,7 +111,7 @@ config-fragments = $(call configfiles,$@)
 
 cmd_merge_fragments = $(srctree)/scripts/kconfig/merge_config.sh -m $(KCONFIG_CONFIG) $(config-fragments)
 
-%.config: $(obj)/conf
+%.config: $(KCONFIG_CONF)
 	$(if $(config-fragments),, $(error $@ fragment does not exists on this architecture))
 	$(call cmd,merge_fragments)
 	$(Q)$(MAKE) -f $(srctree)/Makefile olddefconfig
@@ -119,7 +123,7 @@ tinyconfig:
 
 # CHECK: -o cache_dir=<path> working?
 PHONY += testconfig
-testconfig: $(obj)/conf
+testconfig: $(KCONFIG_CONF)
 	$(Q)$(PYTHON3) -B -m pytest $(src)/tests \
 	-o cache_dir=$(abspath $(obj)/tests/.cache) \
 	$(if $(findstring 1,$(KBUILD_VERBOSE)),--capture=no)
