@@ -54,8 +54,8 @@ tools always use a native host compiler, including with a Meson cross file.
 
 Additional targets include olddefconfig, nconfig, xconfig, gconfig,
 savedefconfig, prepare, modules_prepare, headers_install, modules_install,
-kernel-install, and kernel-clean. The ``kbuild`` target prints an equivalent Make command for
-other targets, such as building an external module with ``M=/path/to/module``.
+kernel-install, and kernel-clean. The ``kbuild`` target prints an equivalent
+Make command for other targets, such as building an external module with ``M=/path/to/module``.
 
 Installation requires an explicit staging path. For example::
 
@@ -102,13 +102,26 @@ below is completed on disposable filesystems.
 Validation and remaining work
 -----------------------------
 
-``meson test -C build --print-errorlogs`` exercises bridge initialization,
+``meson test -C build --no-rebuild --print-errorlogs`` exercises bridge initialization,
 configuration preservation, command argument handling, failure propagation,
 and staging requirements. The ext4 mballoc KUnit suite includes a range test
 that checks every bit and guard byte for partial ranges and unaligned buddy
 bitmap addresses. ``scripts/meson/check_bitmap.py`` builds the actual extracted
 range helpers with sanitizers, compares them against a bitwise oracle, and
 benchmarks them against the base revision's implementation.
+
+``scripts/meson/ext4_smoke.py`` boots an x86 kernel with a static BusyBox
+initramfs against a newly created disposable disk file. It checks file writes,
+copy, rename, truncate, sparse file sizing, small-file allocation/deletion,
+clean remount checksums, and a host read-only fsck. It never mounts the image
+on the host and does not test crash recovery. Example::
+
+  python3 scripts/meson/ext4_smoke.py \
+    --kernel build/kernel/arch/x86/boot/bzImage \
+    --busybox /bin/busybox --qemu-args='-bios qboot.rom'
+
+The observed local validation results and limitations are recorded in
+:doc:`lpm-validation`.
 
 Required before deployment: boot tests on the supported Ryzen generations;
 whole-kernel GCC and Clang builds; built-in and modular ext4; ext4 KUnit and

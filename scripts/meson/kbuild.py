@@ -128,6 +128,10 @@ def main():
         if required and (not Path(env[required]).is_absolute() or
                          Path(env[required]).resolve() == Path('/')):
             raise RuntimeError(required + ' must name an absolute staging directory other than /')
+        if required:
+            # INSTALL_HDR_PATH is assigned by Kbuild, so the environment alone
+            # cannot override it. Forward all staging paths as Make arguments.
+            command.append(required + '=' + env[required])
         initialize(args, output, command, env)
         targets = ['all'] if args.target == 'build' else [args.target]
         run(command + targets, env)

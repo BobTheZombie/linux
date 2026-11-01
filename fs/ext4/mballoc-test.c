@@ -1024,7 +1024,7 @@ static void test_mb_bitmap_ranges(struct kunit *test)
 }
 
 static struct kunit_case mbt_test_cases[] = {
-	KUNIT_CASE(test_mb_bitmap_ranges),
+	KUNIT_CASE_PARAM(test_mb_bitmap_ranges, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_new_blocks_simple, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_free_blocks_simple, mbt_layouts_gen_params),
 	KUNIT_CASE_PARAM(test_mb_generate_buddy, mbt_layouts_gen_params),

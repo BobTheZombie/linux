@@ -56,6 +56,8 @@ sys.exit(int(os.environ.get('TEST_FAIL', '0')))
         self.assertIn('O=' + str(self.out), calls[0])
 
     def test_failed_build_has_no_stamp(self):
+        self.out.mkdir()
+        (self.out / '.config').write_text('CONFIG_MODULES=y\n')
         self.env['TEST_FAIL'] = '23'
         stamp = self.root / 'stamp'
         self.assertNotEqual(self.call('build', '--stamp', str(stamp)).returncode, 0)
@@ -72,6 +74,16 @@ sys.exit(int(os.environ.get('TEST_FAIL', '0')))
         for target in ('install', 'modules_install', 'headers_install'):
             self.assertNotEqual(self.call(target).returncode, 0)
         self.assertFalse(self.log.exists())
+
+    def test_staging_path_is_forwarded_as_make_argument(self):
+        import json
+        for target, variable in (('install', 'INSTALL_PATH'),
+                                 ('modules_install', 'INSTALL_MOD_PATH'),
+                                 ('headers_install', 'INSTALL_HDR_PATH')):
+            self.env[variable] = str(self.root / 'stage')
+            self.assertEqual(self.call(target).returncode, 0)
+            last_call = json.loads(self.log.read_text().splitlines()[-1])
+            self.assertIn(variable + '=' + str(self.root / 'stage'), last_call)
 
     def test_seed_configuration_is_preserved(self):
         seed = self.root / 'seed'

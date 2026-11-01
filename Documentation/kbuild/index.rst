@@ -12,6 +12,7 @@ Kernel Build System
 
     kbuild
     meson
+    lpm-validation
     kconfig
     makefiles
     modules

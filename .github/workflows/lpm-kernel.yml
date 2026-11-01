@@ -29,7 +29,7 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y meson ninja-build flex bison bc libelf-dev libssl-dev libncurses-dev python3-pytest clang llvm lld
+          sudo apt-get install -y meson ninja-build flex bison bc libelf-dev libssl-dev libncurses-dev python3-pytest clang llvm lld busybox-static qemu-system-x86 e2fsprogs kmod
       - name: Configure Zen 2 build
         run: meson setup build -Dryzen=zen2 -Dllvm='${{ matrix.llvm }}' -Djobs=2 -Dkconfig_ui=enabled
       - name: Build kernel and modules
@@ -44,6 +44,8 @@ jobs:
         run: |
           git fetch --depth=1 origin cbbddb6b08cc9900a87cccaa9b22bbe06aa4f50a
           python3 scripts/meson/check_bitmap.py
+      - name: Boot and exercise disposable ext4 filesystem
+        run: python3 scripts/meson/ext4_smoke.py --kernel build/kernel/arch/x86/boot/bzImage --busybox /bin/busybox --qemu-args='-bios qboot.rom'
       - name: Stage modules and headers
         run: |
           INSTALL_MOD_PATH="$PWD/stage" ninja -C build modules_install
@@ -63,6 +65,6 @@ jobs:
       - name: Install build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y flex bison bc libelf-dev libssl-dev
-      - name: Run ext4 KUnit under UML
-        run: python3 tools/testing/kunit/kunit.py run --kunitconfig=fs/ext4 --build_dir=build-kunit --jobs=2 --timeout=300
+          sudo apt-get install -y flex bison bc libelf-dev libssl-dev qemu-system-x86
+      - name: Run ext4 KUnit under QEMU
+        run: python3 tools/testing/kunit/kunit.py run --arch=x86_64 --kunitconfig=fs/ext4 --kconfig_add=CONFIG_X86_TUNE_ZEN2=y --build_dir=build-kunit --jobs=2 --timeout=300
