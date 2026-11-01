@@ -229,6 +229,80 @@ config X86_NATIVE_CPU
 
 	  If unsure, say N.
 
+choice
+	prompt "x86-64 compiler tuning"
+	depends on X86_64 && !X86_NATIVE_CPU
+	default X86_TUNE_GENERIC
+	help
+	  Schedule compiler-generated C code for a particular microarchitecture.
+	  This changes -mtune, not the x86-64 instruction set baseline. Runtime
+	  CPU feature detection and assembly alternatives remain in use.
+	  Choose Generic for kernels without a specific deployment CPU.
+
+config X86_TUNE_GENERIC
+	bool "Generic x86-64"
+	help
+	  Schedule compiler-generated C instructions for generic x86-64 processors.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+config X86_TUNE_ZEN
+	bool "AMD Zen / Zen+"
+	depends on $(cc-option,-mtune=znver1)
+	help
+	  Schedule compiler-generated C instructions for AMD Zen and Zen+ processors.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+config X86_TUNE_ZEN2
+	bool "AMD Zen 2 (including Renoir)"
+	depends on $(cc-option,-mtune=znver2)
+	help
+	  Schedule compiler-generated C instructions for AMD Zen 2 processors, including Renoir.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+config X86_TUNE_ZEN3
+	bool "AMD Zen 3"
+	depends on $(cc-option,-mtune=znver3)
+	help
+	  Schedule compiler-generated C instructions for AMD Zen 3 processors.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+config X86_TUNE_ZEN4
+	bool "AMD Zen 4"
+	depends on $(cc-option,-mtune=znver4)
+	help
+	  Schedule compiler-generated C instructions for AMD Zen 4 processors.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+config X86_TUNE_ZEN5
+	bool "AMD Zen 5"
+	depends on $(cc-option,-mtune=znver5)
+	help
+	  Schedule compiler-generated C instructions for AMD Zen 5 processors.
+	  This controls tuning only and keeps the x86-64 ISA baseline.
+	  Hand-written assembly still uses runtime CPU feature selection.
+	  Benchmark your workload before preferring this over Generic.
+
+endchoice
+
+config X86_CPU_TUNE
+	string
+	default "znver1" if X86_TUNE_ZEN
+	default "znver2" if X86_TUNE_ZEN2
+	default "znver3" if X86_TUNE_ZEN3
+	default "znver4" if X86_TUNE_ZEN4
+	default "znver5" if X86_TUNE_ZEN5
+	default "generic"
+
 config X86_GENERIC
 	bool "Generic x86 support"
 	depends on X86_32

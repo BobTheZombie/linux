@@ -168,7 +168,7 @@ ifdef CONFIG_X86_NATIVE_CPU
         # generate_rust_target.rs handles Rust APX gating.
         KBUILD_RUSTFLAGS += -Ctarget-cpu=native
 else
-        KBUILD_CFLAGS += -march=x86-64 -mtune=generic
+        KBUILD_CFLAGS += -march=x86-64 -mtune=$(CONFIG_X86_CPU_TUNE)
         KBUILD_RUSTFLAGS += -Ctarget-cpu=x86-64 -Ztune-cpu=generic
 endif
 
